@@ -1,29 +1,32 @@
 import sys
 
 class GraphKruskal:
-    def __init__(self, vertices):
-        self.V = vertices  # Number of vertices
-        self.graph = []  # Default dictionary to store graph
+    def __init__(self):
+        self.graph = []
+        self.vertex_map = {}
+        self.reverse_map = {}
+        self.next_index = 0
 
-    # Function to add an edge to graph
-    def add_edge(self, u, v, w):
+    def add_vertex(self, name):
+        if name not in self.vertex_map:
+            self.vertex_map[name] = self.next_index
+            self.reverse_map[self.next_index] = name
+            self.next_index += 1
+
+    def add_edge(self, u_name, v_name, w):
+        u = self.vertex_map[u_name]
+        v = self.vertex_map[v_name]
         self.graph.append([u, v, w])
 
-    # A utility function to find set of an element i
-    # (uses path compression technique)
     def find_parent(self, parent, i):
         if parent[i] == i:
             return i
         return self.find_parent(parent, parent[i])
 
-    # A function that does union of two sets of x and y
-    # (uses union by rank)
     def union(self, parent, rank, x, y):
         xroot = self.find_parent(parent, x)
         yroot = self.find_parent(parent, y)
 
-        # Attach smaller rank tree under root of high rank tree
-        # (Union by Rank)
         if rank[xroot] < rank[yroot]:
             parent[xroot] = yroot
         elif rank[xroot] > rank[yroot]:
@@ -32,126 +35,143 @@ class GraphKruskal:
             parent[yroot] = xroot
             rank[xroot] += 1
 
-    # The main function to construct MST using Kruskal's algorithm
     def kruskal_mst(self):
-
-        # This will store the resultant MST
         result = []
-
-        # An index variable, used for sorted edges
         i = 0
-
-        # An index variable, used for result[]
         e = 0
 
-        # Sort edges in increasing order on basis of cost
         self.graph = sorted(self.graph, key=lambda item: item[2])
 
         parent = []
         rank = []
 
-        # Create V subsets with single elements
-        for node in range(self.V):
+        for node in range(len(self.vertex_map)):
             parent.append(node)
             rank.append(0)
 
-        # Number of edges to be taken is equal to V-1
-        while e < self.V - 1:
-
-            # Spanning Tree edges
+        while e < len(self.vertex_map) - 1 and i < len(self.graph):
             u, v, w = self.graph[i]
             i = i + 1
             x = self.find_parent(parent, u)
             y = self.find_parent(parent, v)
 
-            # If including this edge does't cause cycle,
-            # include it in result and increment the index
-            # of result for next edge
             if x != y:
                 result.append([u, v, w])
                 self.union(parent, rank, x, y)
                 e = e + 1
 
-        # Calculate the total weight of the MST
         total_weight = sum(weight for _, _, weight in result)
 
-        # Print the contents of result[] to display the
-        # constructed MST and the total weight
         print("Following are the edges in the constructed MST")
         for u, v, weight in result:
-            print("%d -- %d == %d" % (u, v, weight))
+            u_name = self.reverse_map[u]
+            v_name = self.reverse_map[v]
+            print("%s -- %s == %d" % (u_name, v_name, weight))
         print("Total weight of the MST:", total_weight)
 
 class GraphPrim:
-    def __init__(self, vertices):
-        self.V = vertices
-        self.graph = [[0 for column in range(vertices)]
-                      for row in range(vertices)]
+    def __init__(self):
+        self.graph = {}
+        self.vertex_map = {}
+        self.reverse_map = {}
+        self.next_index = 0
 
-    def add_edge(self, u, v, w):
+    def add_vertex(self, name):
+        if name not in self.vertex_map:
+            self.vertex_map[name] = self.next_index
+            self.reverse_map[self.next_index] = name
+            self.next_index += 1
+            self.graph[self.next_index-1] = {} 
+
+    def add_edge(self, u_name, v_name, w):
+        u = self.vertex_map[u_name]
+        v = self.vertex_map[v_name]
         self.graph[u][v] = w
         self.graph[v][u] = w
 
     def minDistance(self, dist, sptSet):
-        min = sys.maxsize
+        min_val = sys.maxsize
+        min_index = -1
 
-        for v in range(self.V):
-            if dist[v] < min and sptSet[v] == False:
-                min = dist[v]
-                min_index = v
+        for v_index in self.graph:
+            v_name = self.reverse_map[v_index]
+            if dist[v_index] < min_val and not sptSet[v_index]:
+                min_val = dist[v_index]
+                min_index = v_index
 
         return min_index
 
-    def printMST(self, parent, n, total_weight):
+    def printMST(self, parent, total_weight):
         print("Edge \tWeight")
-        for i in range(1, n):
-            print(parent[i], "-", i, "\t", self.graph[i][parent[i]])
+        for i_index in self.graph:
+            i_name = self.reverse_map.get(i_index)
+            if i_name is None:
+                continue
+            if parent[i_index] is not None and parent[i_index] != -1:  
+                parent_name = self.reverse_map.get(parent[i_index]) 
+                if parent_name is None:
+                    continue 
+                print(f"{parent_name} - {i_name}\t{self.graph.get(i_index, {}).get(parent[i_index])}") # Use get to avoid KeyError
         print("Total weight of the MST:", total_weight)
 
     def primMST(self):
-        parent = [None] * self.V
-        key = [sys.maxsize] * self.V
-        mstSet = [False] * self.V
+        num_vertices = len(self.vertex_map)
+        parent = [None] * num_vertices
+        key = [sys.maxsize] * num_vertices
+        mstSet = [False] * num_vertices
 
-        key[0] = 0
-        parent[0] = -1
+        start_vertex_index = 0
+        key[start_vertex_index] = 0
+        parent[start_vertex_index] = -1
 
-        for cout in range(self.V):
-            u = self.minDistance(key, mstSet)
-            mstSet[u] = True
+        for _ in range(num_vertices):
+            u_index = self.minDistance(key, mstSet)
 
-            for v in range(self.V):
-                if self.graph[u][v] > 0 and mstSet[v] == False and key[v] > self.graph[u][v]:
-                    key[v] = self.graph[u][v]
-                    parent[v] = u
+            if u_index == -1:
+                continue
 
-        total_weight = sum(key[i] for i in range(1, self.V))
+            mstSet[u_index] = True
 
-        self.printMST(parent, self.V, total_weight)
+            for v_index in self.graph:  
+                if self.graph.get(u_index) and self.graph[u_index].get(v_index) and self.graph[u_index][v_index] > 0 and not mstSet[v_index] and key[v_index] > self.graph[u_index][v_index]:
+                    key[v_index] = self.graph[u_index][v_index]
+                    parent[v_index] = u_index
 
-if __name__ == '__main__':
-    gk = GraphKruskal(4)
-    gk.add_edge(0, 1, 10)
-    gk.add_edge(0, 2, 6)
-    gk.add_edge(0, 3, 5)
-    gk.add_edge(1, 3, 15)
-    gk.add_edge(2, 3, 4)
+        total_weight = sum(key[i] for i in range(num_vertices) if parent[i] is not None)
 
-    gkk = GraphKruskal(5)
-    gkk.add_edge(0, 1, 2)
-    gkk.add_edge(0, 3, 6)
-    gkk.add_edge(1, 2, 3)
-    gkk.add_edge(1, 3, 8)
-    gkk.add_edge(1, 4, 5)
-    gkk.add_edge(2, 4, 7)
+        self.printMST(parent, total_weight)
 
-    gkk.kruskal_mst()
+def readInputsNMakeGraphs():
+    try:
+        with open("input.txt", "r") as file:
+            graphInput = file.readlines()
+            print('File read successfuly')
+    except FileNotFoundError:
+        print("File not found.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
-    gp = GraphPrim(5)
-    gp.add_edge(0, 1, 2)
-    gp.add_edge(0, 3, 6)
-    gp.add_edge(1, 2, 3)
-    gp.add_edge(1, 3, 8)
-    gp.add_edge(1, 4, 5)
-    gp.add_edge(2, 4, 7)
-    gp.primMST()
+    # Getting quantity of vertices
+    vertices = graphInput[0].strip()
+
+    gp = GraphPrim()
+    gk = GraphKruskal()
+
+    for vertice in vertices:
+        if (vertice != ' '):
+            gp.add_vertex(f'{vertice}')
+            gk.add_vertex(f'{vertice}')
+
+    for edge in range(1, len(graphInput)):
+        info = graphInput[edge].strip()
+        verVerWeight = info.split()
+        verVerWeight[2] = int(verVerWeight[2])
+        gp.add_edge(verVerWeight[0], verVerWeight[1], verVerWeight[2])
+        gk.add_edge(verVerWeight[0], verVerWeight[1], verVerWeight[2])
+    
+    return gk, gp
+
+gk, gp = readInputsNMakeGraphs()
+gp.primMST()
+print('\n')
+gk.kruskal_mst()
