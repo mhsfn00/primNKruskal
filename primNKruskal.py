@@ -69,6 +69,15 @@ class GraphKruskal:
             print("%s -- %s == %d" % (u_name, v_name, weight))
         print("Total weight of the MST:", total_weight)
 
+        # Convert result to use vertex names instead of indices
+        mst_edges = []
+        for u, v, weight in result:
+            u_name = self.reverse_map[u]
+            v_name = self.reverse_map[v]
+            mst_edges.append((u_name, v_name, weight))
+
+        return mst_edges
+
 class GraphPrim:
     def __init__(self):
         self.graph = {}
@@ -141,9 +150,24 @@ class GraphPrim:
 
         self.printMST(parent, total_weight)
 
+        # Build and return the MST as a list of edges
+        mst_edges = []
+        for i_index in self.graph:
+            i_name = self.reverse_map.get(i_index)
+            if i_name is None:
+                continue
+            if parent[i_index] is not None and parent[i_index] != -1:
+                parent_name = self.reverse_map.get(parent[i_index])
+                if parent_name is None:
+                    continue
+                weight = self.graph[i_index][parent[i_index]]
+                mst_edges.append((parent_name, i_name, weight))
+
+        return mst_edges
+
 def readInputsNMakeGraphs():
     try:
-        with open("input.txt", "r") as file:
+        with open(entrada, "r") as file:
             graphInput = file.readlines()
             print('File read successfuly')
     except FileNotFoundError:
@@ -171,7 +195,29 @@ def readInputsNMakeGraphs():
     
     return gk, gp
 
+def writeOutput(kruskalMST, primMST):   
+    kruskalWeight = 0
+    primWeight = 0
+
+    with open(saidaKru, 'w') as file:
+        for connection in kruskalMST:
+            file.write(f'{connection[0]} {connection[1]} {connection[2]}\n')
+            kruskalWeight += connection[2]
+        file.write(f'custo_total = {kruskalWeight}')
+
+    with open(saidaPrim, 'w') as file:
+        for connection in primMST:
+            file.write(f'{connection[0]} {connection[1]} {connection[2]}\n')
+            primWeight += connection[2]
+        file.write(f'custo_total = {primWeight}')
+    
+    print('Output written successfuly')
+
+entrada = 'entrada.txt'
+saidaPrim = 'saida.pri'
+saidaKru = 'saida.kru'
+
 gk, gp = readInputsNMakeGraphs()
-gp.primMST()
-print('\n')
-gk.kruskal_mst()
+primMST = gp.primMST()
+kruskalMST = gk.kruskal_mst()
+writeOutput(kruskalMST, primMST)
